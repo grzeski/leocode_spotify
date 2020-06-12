@@ -2,6 +2,7 @@ package leocode.spotify.http.routes
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import cats.effect.IO
 import leocode.spotify.services.SpotifyService
 
 trait LeocodeServiceRoutes {
@@ -10,12 +11,12 @@ trait LeocodeServiceRoutes {
 
 object LeocodeServiceRoutes {
   class Default(
-      spotifyService: SpotifyService
+      spotifyService: SpotifyService[IO]
   ) extends LeocodeServiceRoutes {
 
     def fectchSpotify() =
       (post & path("v1" / "fetch_spotify")) {
-        onSuccess(spotifyService.getAlbums())(_ => complete("OK"))
+        onComplete(spotifyService.importArtist("0A0FS04o6zMoto8OKPsDwY").unsafeToFuture())(_ => complete("OK"))
       }
 
     override def routes(): Route =

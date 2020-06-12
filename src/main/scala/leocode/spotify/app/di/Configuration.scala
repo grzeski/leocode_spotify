@@ -2,9 +2,12 @@ package leocode.spotify.app.di
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import cats.effect.{ContextShift, IO}
 import com.typesafe.config.{Config, ConfigFactory}
-import ciris.syntax._
-import ciris.{env, loadConfig}
+import ciris._
+import cats.implicits._
+import leocode.spotify.services.SpotifyAuth
+
 import scala.concurrent.ExecutionContext
 
 trait Configuration {
@@ -15,6 +18,8 @@ trait Configuration {
 
   implicit val executionContext: ExecutionContext = materializer.executionContext
 
+  implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+
   implicit val cfg: Config =
     ConfigFactory.load("common.conf")
 
@@ -23,9 +28,16 @@ trait Configuration {
   lazy val httpHost: String = "localhost"
   val serviceName = "leocode-spotify"
 
-  lazy val basicAuthConfig: (String, String) = loadConfig(
-    env[Option[String]]("BASIC_AUTH_USERNAME").mapValue(_.getOrElse("leocode")),
-    env[Option[String]]("BASIC_AUTH_PASSWORD").mapValue(_.getOrElse("leocode"))
-  )((p, u) => (p, u)).orThrow()
+  // Both below are bad, bad
+  lazy val spotifyAuth: SpotifyAuth = (
+    env("SPOTIFY_ID").as[String].default(""),
+    env("SPOTIFY_SECRET").as[String].default("")
+  ).parMapN((p, u) => SpotifyAuth(p, u)).load[IO].unsafeRunSync()
+
+  lazy val basicAuthConfig: (String, String) =
+    (env("BASIC_AUTH_USERNAME").as[String].default("leocode"), env("BASIC_AUTH_PASSWORD").as[String].default("leocode"))
+      .parMapN((p, u) => (p, u))
+      .load[IO]
+      .unsafeRunSync()
 
 }
