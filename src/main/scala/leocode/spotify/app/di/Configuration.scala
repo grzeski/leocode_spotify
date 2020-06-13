@@ -6,6 +6,7 @@ import cats.effect.{ContextShift, IO}
 import com.typesafe.config.{Config, ConfigFactory}
 import ciris._
 import cats.implicits._
+import leocode.spotify.database.DatabaseMigration.DbConfig
 import leocode.spotify.services.SpotifyAuth
 
 import scala.concurrent.ExecutionContext
@@ -39,5 +40,15 @@ trait Configuration {
       .parMapN((p, u) => (p, u))
       .load[IO]
       .unsafeRunSync()
+
+  // this one is fine no unsafe ;)
+  def dbConfig(): IO[DbConfig] =
+    (
+      env("DATABASE_DRIVER").as[String].default("org.postgresql.Driver"),
+      env("DATABASE_URI").as[String].default("jdbc:postgresql://localhost:6432/leocode_spotify"),
+      env("DATABASE_USERNAME").as[String].default("postgres"),
+      env("DATABASE_PASSWORD").as[String].option.default(Some("postgres"))
+    ).parMapN((driver, uri, username, password) => DbConfig(driver, uri, username, password))
+      .load[IO]
 
 }

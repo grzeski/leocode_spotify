@@ -4,8 +4,6 @@ import akka.http.scaladsl.server.Directive0
 import akka.http.scaladsl.server.Directives.authenticateBasic
 import akka.http.scaladsl.server.directives.Credentials
 import cats.effect.{Blocker, IO, Resource}
-import cats.implicits._
-import ciris._
 import com.softwaremill.macwire.wire
 import com.softwaremill.sttp
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
@@ -13,13 +11,13 @@ import doobie.hikari.HikariTransactor
 import doobie.util.ExecutionContexts
 import io.scarman.spotify.Spotify
 import leocode.spotify.clients.SpotifyClient
+import leocode.spotify.database
+import leocode.spotify.database.DatabaseMigration
 import leocode.spotify.http.HttpServer
 import leocode.spotify.http.routes.LeocodeServiceRoutes
 import leocode.spotify.services.SpotifyService
 
 import scala.concurrent.Future
-
-case class DbConfig(driver: String, connectionUri: String, user: String, password: Option[String])
 
 class Dependencies() extends Configuration {
 
@@ -27,15 +25,6 @@ class Dependencies() extends Configuration {
     AsyncHttpClientFutureBackend()
 
   implicit lazy val spotify: Spotify = Spotify(spotifyAuth.id, spotifyAuth.secret)
-
-  def dbConfig(): IO[DbConfig] =
-    (
-      env("DATABASE_DRIVER").as[String].default("org.postgresql.Driver"),
-      env("DATABASE_URI").as[String].default("jdbc:postgresql://localhost:5432/index_image_service"),
-      env("DATABASE_USERNAME").as[String].default("postgres"),
-      env("DATABASE_PASSWORD").as[String].option.default(Some("postgres"))
-    ).parMapN((driver, uri, username, password) => DbConfig(driver, uri, username, password))
-      .load[IO]
 
   lazy val transaction: Resource[IO, HikariTransactor[IO]] =
     for {
@@ -58,6 +47,9 @@ class Dependencies() extends Configuration {
 
   lazy val httpConfig: HttpServer.Config = HttpServer.Config(httpHost, httpPort)
   lazy val httpServer: HttpServer = new HttpServer.Default(httpConfig, leocodeServiceRoutes, basicAuth)
+
+  lazy val databaseMigration: IO[DatabaseMigration[IO]] =
+    dbConfig.map(config => new database.DatabaseMigration.FlywayImpl(config))
 
   lazy val basicAuth: Directive0 = authenticateBasic(serviceName, {
     case c: Credentials.Provided if c.identifier == basicAuthConfig._1 && c.verify(basicAuthConfig._2) =>

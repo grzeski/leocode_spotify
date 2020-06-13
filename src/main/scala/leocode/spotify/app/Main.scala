@@ -11,6 +11,9 @@ object Main extends App {
 
   val dependencies = new Dependencies()
 
+  log.debug("Running migrations")
+  dependencies.databaseMigration.unsafeRunSync().migrate().unsafeRunSync()
+
   log.debug("Starting http server")
   dependencies.httpServer.start()
 

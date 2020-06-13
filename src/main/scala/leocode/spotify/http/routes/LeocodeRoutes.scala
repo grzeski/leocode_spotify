@@ -15,8 +15,9 @@ object LeocodeServiceRoutes {
   ) extends LeocodeServiceRoutes {
 
     def fectchSpotify() =
-      (post & path("v1" / "fetch_spotify")) {
-        onComplete(spotifyService.importArtist("0A0FS04o6zMoto8OKPsDwY").unsafeToFuture())(_ => complete("OK"))
+      (post & path("v1" / "import_artist" / Segment)) { artistId =>
+        println(artistId)
+        onComplete(spotifyService.importArtist(artistId).unsafeToFuture())(_ => complete("OK"))
       }
 
     override def routes(): Route =

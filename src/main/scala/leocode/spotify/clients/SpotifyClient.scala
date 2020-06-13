@@ -17,7 +17,7 @@ object SpotifyClient {
       cs: ContextShift[IO]
   ) extends SpotifyClient[IO] {
     def getArtist(artistId: String): IO[resp.Artist] = {
-      val artist: Artist = spotify.getArtist("0A0FS04o6zMoto8OKPsDwY")
+      val artist: Artist = spotify.getArtist(artistId)
       IO.fromFuture(IO {
         artist()
       })
