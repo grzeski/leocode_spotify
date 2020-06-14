@@ -12,7 +12,7 @@ import doobie.util.ExecutionContexts
 import io.scarman.spotify.Spotify
 import leocode.spotify.clients.SpotifyClient
 import leocode.spotify.database
-import leocode.spotify.database.DatabaseMigration
+import leocode.spotify.database.{DatabaseMigration, SpotifyRepository}
 import leocode.spotify.http.HttpServer
 import leocode.spotify.http.routes.LeocodeServiceRoutes
 import leocode.spotify.services.SpotifyService
@@ -41,6 +41,7 @@ class Dependencies() extends Configuration {
       )
     } yield xa
 
+  lazy val spotifyRepository: SpotifyRepository[IO] = wire[SpotifyRepository.Default]
   lazy val spotifyClient: SpotifyClient[IO] = wire[SpotifyClient.Default]
   lazy val spotifyService: SpotifyService[IO] = wire[SpotifyService.Default]
   lazy val leocodeServiceRoutes: LeocodeServiceRoutes = wire[LeocodeServiceRoutes.Default]

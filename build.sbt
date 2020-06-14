@@ -36,7 +36,9 @@ val db = Seq(
 
 val dependenciesTest = Seq(
   "org.mockito" % "mockito-core" % "2.7.6" % Test,
-  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test
+  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test,
+  "org.scalatest" %% "scalatest" % "3.1.1" % Test,
+  "org.scalamock" %% "scalamock" % "4.4.0" % Test,
 )
 
 resolvers ++= Seq(Resolver.JCenterRepository, Resolver.sonatypeRepo("releases"), Resolver.sonatypeRepo("snapshots"))

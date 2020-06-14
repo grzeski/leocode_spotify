@@ -1,45 +1,32 @@
 package leocode.spotify.services
 
-import cats.effect.{IO, Resource}
-import doobie.implicits._
-import doobie.quill.DoobieContext
-import doobie.util.transactor.Transactor
-import io.getquill.{idiom => _, _}
+import cats.effect.{IO}
 import leocode.spotify.clients.SpotifyClient
+import leocode.spotify.database.SpotifyRepository
+import leocode.spotify.database.SpotifyRepository.SpotifyArtist
 
 import scala.concurrent.ExecutionContext
 
 case class SpotifyAuth(id: String, secret: String)
 
 trait SpotifyService[F[_]] {
-  def importArtist(artistId: String): F[Unit]
+  def importArtist(artistId: String): F[String]
 
 }
 
 object SpotifyService {
-  case class SpotifyArtist(id: String, name: String, uri: String, href: String)
 
-  lazy val dc = new DoobieContext.Postgres(SnakeCase)
-
-  class Default(spotifyClient: SpotifyClient[IO], transaction: Resource[IO, Transactor.Aux[IO, _]])(
+  class Default(spotifyClient: SpotifyClient[IO], spotifyRepository: SpotifyRepository[IO])(
       implicit val executionContext: ExecutionContext
   ) extends SpotifyService[IO] {
 
-    import dc._
-
-    override def importArtist(artistId: String): IO[Unit] = {
+    override def importArtist(artistId: String): IO[String] = {
       for {
         artist <- spotifyClient.getArtist(artistId)
-        _ <- save(SpotifyArtist(id = artist.id, name = artist.name, uri = artist.uri, href = artist.href))
-      } yield IO.pure(())
-    }
-
-    def save(artist: SpotifyArtist): IO[String] = {
-      val stmt = quote(query[SpotifyArtist].insert(lift(artist)).returning(_.id))
-
-      transaction.use { xa =>
-        run(stmt).transact(xa).map(identity(_))
-      }
+        id <- spotifyRepository.save(
+          SpotifyArtist(id = artist.id, name = artist.name, uri = artist.uri, href = artist.href)
+        )
+      } yield id
     }
 
   }
